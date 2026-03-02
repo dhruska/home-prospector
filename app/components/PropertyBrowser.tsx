@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
 import PropertyTable from "./PropertyTable";
 import PropertyDetailModal from "./PropertyDetailModal";
@@ -30,6 +30,38 @@ function haversineDistanceMi(
 }
 
 export default function PropertyBrowser({ properties, columns }: Props) {
+  const [splitPct, setSplitPct] = useState(60);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
+
+  const onMouseDown = useCallback(() => {
+    dragging.current = true;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  }, []);
+
+  const onMouseMove = useCallback((e: MouseEvent) => {
+    if (!dragging.current || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const pct = ((e.clientX - rect.left) / rect.width) * 100;
+    setSplitPct(Math.min(80, Math.max(20, pct)));
+  }, []);
+
+  const onMouseUp = useCallback(() => {
+    dragging.current = false;
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+  }, []);
+
+  useEffect(() => {
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+    return () => {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+  }, [onMouseMove, onMouseUp]);
+
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sortedProperties, setSortedProperties] = useState<Property[]>(properties);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -106,14 +138,14 @@ export default function PropertyBrowser({ properties, columns }: Props) {
   );
 
   const mappableProperties = useMemo(
-    () => properties.filter((p) => p.coords != null),
-    [properties]
+    () => filteredProperties.filter((p) => p.coords != null),
+    [filteredProperties]
   );
 
   return (
     <>
-      <div className="flex flex-1 overflow-hidden">
-        <div className="w-1/2 overflow-auto flex flex-col">
+      <div className="flex flex-1 overflow-hidden" ref={containerRef}>
+        <div className="overflow-auto flex flex-col" style={{ width: `${splitPct}%` }}>
           <div className="flex items-center gap-1.5 px-3 py-2 border-b border-zinc-200 bg-zinc-50 text-xs shrink-0">
             <span className="text-zinc-400 font-medium mr-1">Show:</span>
             <button
@@ -170,7 +202,11 @@ export default function PropertyBrowser({ properties, columns }: Props) {
             />
           </div>
         </div>
-        <div className="w-1/2">
+        <div
+          className="w-1.5 shrink-0 cursor-col-resize bg-zinc-200 hover:bg-zinc-400 active:bg-zinc-500 transition-colors"
+          onMouseDown={onMouseDown}
+        />
+        <div className="overflow-hidden" style={{ width: `${100 - splitPct}%` }}>
           <PropertyMap
             properties={mappableProperties}
             selectedId={selectedId}

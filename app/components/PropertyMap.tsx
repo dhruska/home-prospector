@@ -15,22 +15,27 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "/marker-shadow.png",
 });
 
-const redIcon = new L.Icon({
-  iconUrl:
-    "data:image/svg+xml;base64," +
-    btoa(
-      `<svg xmlns="http://www.w3.org/2000/svg" width="25" height="41" viewBox="0 0 25 41">
-        <path fill="#e53e3e" stroke="#c53030" stroke-width="1.5"
-          d="M12.5 0C5.6 0 0 5.6 0 12.5c0 9.4 12.5 28.5 12.5 28.5S25 21.9 25 12.5C25 5.6 19.4 0 12.5 0z"/>
-        <circle fill="white" cx="12.5" cy="12.5" r="4.5"/>
-      </svg>`
-    ),
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowUrl: "/marker-shadow.png",
-  shadowSize: [41, 41],
-});
+const RATING_COLOR: Record<string, string> = {
+  yes:   "#16a34a",
+  maybe: "#d97706",
+  no:    "#dc2626",
+};
+const DEFAULT_COLOR = "#2563eb";
+
+function makeIcon(color: string, selected: boolean): L.Icon {
+  const ring = selected ? `<circle cx="12" cy="12" r="11" fill="white"/>` : "";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+    ${ring}
+    <circle cx="12" cy="12" r="9" fill="${color}"/>
+    <circle cx="12" cy="12" r="4" fill="white"/>
+  </svg>`;
+  return new L.Icon({
+    iconUrl: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+    popupAnchor: [0, -14],
+  });
+}
 
 interface MapPannerProps {
   selectedId: string | null;
@@ -80,7 +85,7 @@ export default function PropertyMap({ properties, selectedId, onSelect }: Props)
           <Marker
             key={id}
             position={[prop.coords.lat, prop.coords.lng]}
-            icon={isSelected ? redIcon : new L.Icon.Default()}
+            icon={makeIcon(RATING_COLOR[String(prop.Rating ?? "")] ?? DEFAULT_COLOR, isSelected)}
             zIndexOffset={isSelected ? 1000 : 0}
             eventHandlers={{ click: () => onSelect(id) }}
           >
