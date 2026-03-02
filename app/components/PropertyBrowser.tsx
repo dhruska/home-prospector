@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import PropertyTable from "./PropertyTable";
 import PropertyDetailModal from "./PropertyDetailModal";
 import type { Property } from "../types/property";
+import type { Rating } from "../api/ratings/route";
 
 const PropertyMap = dynamic(() => import("./PropertyMap"), { ssr: false });
 
@@ -32,7 +33,18 @@ export default function PropertyBrowser({ properties, columns }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sortedProperties, setSortedProperties] = useState<Property[]>(properties);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [ratings, setRatings] = useState<Record<string, Rating>>({});
+  const [ratingFilter, setRatingFilter] = useState<Set<Rating | "unrated">>(new Set());
 
+  // Load persisted ratings on mount
+  useEffect(() => {
+    fetch("/api/ratings")
+      .then((r) => r.json())
+      .then(setRatings)
+      .catch(() => {});
+  }, []);
+
+  // Request geolocation on mount
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
       (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
@@ -44,20 +56,46 @@ export default function PropertyBrowser({ properties, columns }: Props) {
     setSelectedId((prev) => (prev === id ? null : id));
   }
 
-  const displayProperties = useMemo(() => {
-    if (!userLocation) return properties;
-    return properties.map((p) => ({
-      ...p,
-      Distance: p.coords
-        ? parseFloat(haversineDistanceMi(userLocation, p.coords).toFixed(1))
-        : null,
-    }));
-  }, [properties, userLocation]);
+  async function handleRate(id: string, rating: Rating | null) {
+    const res = await fetch("/api/ratings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, rating }),
+    });
+    const updated = await res.json();
+    setRatings(updated);
+  }
 
-  const displayColumns = useMemo(
-    () => (userLocation ? ["Distance", ...columns] : columns),
-    [columns, userLocation]
-  );
+  const displayProperties = useMemo(() => {
+    return properties.map((p) => {
+      const id = String(p.Id);
+      const withRating: Property = { ...p, Rating: ratings[id] ?? null };
+      if (userLocation && p.coords) {
+        withRating.Distance = parseFloat(
+          haversineDistanceMi(userLocation, p.coords).toFixed(1)
+        );
+      } else if (userLocation) {
+        withRating.Distance = null;
+      }
+      return withRating;
+    });
+  }, [properties, userLocation, ratings]);
+
+  const filteredProperties = useMemo(() => {
+    if (ratingFilter.size === 0) return displayProperties;
+    return displayProperties.filter((p) => {
+      const r = p.Rating as Rating | null | undefined;
+      if (ratingFilter.has("unrated") && !r) return true;
+      if (r && ratingFilter.has(r)) return true;
+      return false;
+    });
+  }, [displayProperties, ratingFilter]);
+
+  const displayColumns = useMemo(() => {
+    const cols = ["Rating", ...columns];
+    if (userLocation) cols.splice(1, 0, "Distance");
+    return cols;
+  }, [columns, userLocation]);
 
   const selectedProperty = useMemo(
     () =>
@@ -75,15 +113,62 @@ export default function PropertyBrowser({ properties, columns }: Props) {
   return (
     <>
       <div className="flex flex-1 overflow-hidden">
-        <div className="w-1/2 overflow-auto">
-          <PropertyTable
-            data={displayProperties}
-            columns={displayColumns}
-            selectedId={selectedId}
-            onSelect={handleSelect}
-            onSortedRows={setSortedProperties}
-            defaultSortId={userLocation ? "Distance" : undefined}
-          />
+        <div className="w-1/2 overflow-auto flex flex-col">
+          <div className="flex items-center gap-1.5 px-3 py-2 border-b border-zinc-200 bg-zinc-50 text-xs shrink-0">
+            <span className="text-zinc-400 font-medium mr-1">Show:</span>
+            <button
+              onClick={() => setRatingFilter(new Set())}
+              className={`px-2 py-0.5 rounded border font-medium transition-colors ${
+                ratingFilter.size === 0
+                  ? "bg-zinc-800 text-white border-zinc-800"
+                  : "bg-white text-zinc-500 border-zinc-300 hover:border-zinc-400"
+              }`}
+            >
+              All
+            </button>
+            {(
+              [
+                { key: "yes",     label: "✓ Yes",   active: "bg-green-100 text-green-700 border-green-300" },
+                { key: "maybe",   label: "? Maybe", active: "bg-amber-100 text-amber-700 border-amber-300" },
+                { key: "no",      label: "✕ No",    active: "bg-red-100 text-red-700 border-red-300" },
+                { key: "unrated", label: "Unrated", active: "bg-zinc-200 text-zinc-700 border-zinc-400" },
+              ] as const
+            ).map(({ key, label, active }) => {
+              const isOn = ratingFilter.has(key);
+              return (
+                <button
+                  key={key}
+                  onClick={() => {
+                    setRatingFilter((prev) => {
+                      const next = new Set(prev);
+                      isOn ? next.delete(key) : next.add(key);
+                      return next;
+                    });
+                  }}
+                  className={`px-2 py-0.5 rounded border font-medium transition-colors ${
+                    isOn ? active : "bg-white text-zinc-500 border-zinc-300 hover:border-zinc-400"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+            {ratingFilter.size > 0 && (
+              <span className="ml-auto text-zinc-400">
+                {filteredProperties.length} of {displayProperties.length}
+              </span>
+            )}
+          </div>
+          <div className="overflow-auto flex-1">
+            <PropertyTable
+              data={filteredProperties}
+              columns={displayColumns}
+              selectedId={selectedId}
+              onSelect={handleSelect}
+              onSortedRows={setSortedProperties}
+              defaultSortId={userLocation ? "Distance" : undefined}
+            />
+          </div>
         </div>
         <div className="w-1/2">
           <PropertyMap
@@ -99,6 +184,7 @@ export default function PropertyBrowser({ properties, columns }: Props) {
           properties={sortedProperties}
           onClose={() => setSelectedId(null)}
           onNavigate={handleSelect}
+          onRate={handleRate}
         />
       )}
     </>

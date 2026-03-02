@@ -34,6 +34,19 @@ export default function PropertyTable({ data, columns, selectedId, onSelect, onS
         cell: (info) => {
           const val = info.getValue();
           if (val === null || val === undefined || val === "") return null;
+          if (info.column.id === "Rating") {
+            const cfg = {
+              yes: { label: "Yes", cls: "text-green-700 bg-green-50 border-green-200" },
+              maybe: { label: "Maybe", cls: "text-amber-700 bg-amber-50 border-amber-200" },
+              no: { label: "No", cls: "text-red-700 bg-red-50 border-red-200" },
+            }[String(val) as "yes" | "maybe" | "no"];
+            if (!cfg) return null;
+            return (
+              <span className={`px-1.5 py-0.5 rounded text-xs font-medium border ${cfg.cls}`}>
+                {cfg.label}
+              </span>
+            );
+          }
           return String(val);
         },
       })),

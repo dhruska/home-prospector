@@ -126,14 +126,23 @@ interface Section {
   fields: { label: string; value: unknown; type?: "currency" | "number" | "text" | "percent" }[];
 }
 
+type Rating = "yes" | "maybe" | "no";
+
+const RATING_CONFIG: Record<Rating, { label: string; activeClass: string }> = {
+  yes:   { label: "✓ Yes",   activeClass: "bg-green-100 text-green-700 border-green-400" },
+  maybe: { label: "? Maybe", activeClass: "bg-amber-100 text-amber-700 border-amber-400" },
+  no:    { label: "✕ No",    activeClass: "bg-red-100 text-red-700 border-red-400" },
+};
+
 interface Props {
   property: Property;
   properties: Property[];
   onClose: () => void;
   onNavigate: (id: string) => void;
+  onRate: (id: string, rating: Rating | null) => void;
 }
 
-export default function PropertyDetailModal({ property: p, properties, onClose, onNavigate }: Props) {
+export default function PropertyDetailModal({ property: p, properties, onClose, onNavigate, onRate }: Props) {
   const currentIndex = properties.findIndex((prop) => String(prop.Id) === String(p.Id));
   const prevProp = currentIndex > 0 ? properties[currentIndex - 1] : null;
   const nextProp = currentIndex < properties.length - 1 ? properties[currentIndex + 1] : null;
@@ -249,6 +258,22 @@ export default function PropertyDetailModal({ property: p, properties, onClose, 
                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-zinc-50 text-zinc-700 hover:bg-zinc-100 border border-zinc-200">
                 Apple Maps ↗
               </a>
+            </div>
+            <div className="flex gap-1.5 mt-2">
+              {(Object.entries(RATING_CONFIG) as [Rating, typeof RATING_CONFIG[Rating]][]).map(([r, cfg]) => {
+                const isActive = (p.Rating as Rating | undefined) === r;
+                return (
+                  <button
+                    key={r}
+                    onClick={() => onRate(String(p.Id), isActive ? null : r)}
+                    className={`px-2.5 py-0.5 rounded text-xs font-medium border cursor-pointer transition-colors ${
+                      isActive ? cfg.activeClass : "bg-zinc-50 text-zinc-500 border-zinc-200 hover:bg-zinc-100"
+                    }`}
+                  >
+                    {cfg.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
