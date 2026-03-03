@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { Property } from "../types/property";
 
 function buildZillowUrl(p: Property): string {
@@ -71,7 +71,7 @@ async function openGoogleMapsStreetView(p: Property): Promise<void> {
     if (data.status === "OK" && data.location) {
       const heading = computeBearing(data.location, p.coords);
       window.open(
-        `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${p.coords.lat},${p.coords.lng}&heading=${Math.round(heading)}`,
+        `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${data.location.lat},${data.location.lng}&heading=${Math.round(heading)}`,
         "_blank",
         "noopener,noreferrer"
       );
@@ -83,20 +83,41 @@ async function openGoogleMapsStreetView(p: Property): Promise<void> {
   }
 }
 
-function buildStreetViewUrl(p: Property): string | null {
+function StreetViewImage({ property: p }: { property: Property }) {
   const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-  if (!key) return null;
-  const location = p.coords
-    ? `${p.coords.lat},${p.coords.lng}`
-    : [p.Address, p.City, p.State, String(p.Zip ?? "")]
-        .map((s) => String(s ?? "").trim())
-        .filter(Boolean)
-        .join(", ");
-  if (!location) return null;
+  const [src, setSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!key || !p.coords) { setSrc(null); return; }
+    const { lat, lng } = p.coords;
+    fetch(
+      `https://maps.googleapis.com/maps/api/streetview/metadata?location=${lat},${lng}&key=${key}`
+    )
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.status !== "OK") { setSrc(null); return; }
+        const heading = Math.round(computeBearing(data.location, { lat, lng }));
+        const panoParam = data.pano_id ? `pano=${data.pano_id}` : `location=${lat},${lng}`;
+        setSrc(
+          `https://maps.googleapis.com/maps/api/streetview` +
+          `?size=640x320&${panoParam}&heading=${heading}&fov=90&key=${key}`
+        );
+      })
+      .catch(() => setSrc(null));
+  }, [p.Id, key]);
+
+  if (!src) return null;
   return (
-    `https://maps.googleapis.com/maps/api/streetview` +
-    `?size=640x320&location=${encodeURIComponent(location)}` +
-    `&fov=90&key=${key}`
+    <div className="w-full bg-zinc-100 overflow-hidden" style={{ height: "260px" }}>
+      <img
+        src={src}
+        alt={`Street view of ${p.Address}`}
+        className="w-full h-full object-cover"
+        onError={(e) => {
+          (e.currentTarget.parentElement as HTMLElement).style.display = "none";
+        }}
+      />
+    </div>
   );
 }
 
@@ -307,21 +328,7 @@ export default function PropertyDetailModal({ property: p, properties, onClose, 
         </div>
 
         {/* Street View photo */}
-        {(() => {
-          const url = buildStreetViewUrl(p);
-          return url ? (
-            <div className="w-full bg-zinc-100 overflow-hidden" style={{ height: "260px" }}>
-              <img
-                src={url}
-                alt={`Street view of ${p.Address}`}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.currentTarget.parentElement as HTMLElement).style.display = "none";
-                }}
-              />
-            </div>
-          ) : null;
-        })()}
+        <StreetViewImage property={p} />
 
         {/* Hero row */}
         <div className="grid grid-cols-3 gap-px bg-zinc-100 border-b border-zinc-200">

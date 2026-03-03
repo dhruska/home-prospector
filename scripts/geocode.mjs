@@ -1,4 +1,4 @@
-// Geocodes addresses from propwire_export.csv using Nominatim (free, no API key).
+// Geocodes addresses from propwire_export.csv using Google Geocoding API (ROOFTOP precision).
 // Saves results to data/geocoded.json as { "[Id]": { lat, lng } }.
 // Safe to interrupt and resume — already-geocoded entries are skipped.
 // Run: node scripts/geocode.mjs
@@ -57,19 +57,30 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-async function geocode(address, city, state, zip) {
+async function geocode(address, city, state, zip, apiKey) {
   const q = encodeURIComponent(`${address}, ${city}, ${state} ${zip}, USA`);
-  const url = `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`;
-  const res = await fetch(url, {
-    headers: { "User-Agent": "house-prospector-geocoder/1.0" },
-  });
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${q}&key=${apiKey}`;
+  const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const json = await res.json();
-  if (json.length === 0) return null;
-  return { lat: parseFloat(json[0].lat), lng: parseFloat(json[0].lon) };
+  if (json.status !== "OK" || !json.results?.length) return null;
+  const { lat, lng } = json.results[0].geometry.location;
+  const type = json.results[0].geometry.location_type;
+  return { lat, lng, type };
 }
 
 async function main() {
+  // Read NEXT_PUBLIC_GOOGLE_MAPS_API_KEY from .env.local
+  const envPath = path.join(rootDir, ".env.local");
+  let apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  if (!apiKey && fs.existsSync(envPath)) {
+    for (const line of fs.readFileSync(envPath, "utf-8").split(/\r?\n/)) {
+      const m = line.match(/^NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=(.+)$/);
+      if (m) { apiKey = m[1].trim(); break; }
+    }
+  }
+  if (!apiKey) { console.error("Missing NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"); process.exit(1); }
+
   const csvPath = path.join(rootDir, "data", "propwire_export.csv");
   const outPath = path.join(rootDir, "data", "geocoded.json");
 
@@ -101,10 +112,10 @@ async function main() {
     const zip = row["Zip"] ?? "";
 
     try {
-      const coords = await geocode(address, city, state, zip);
+      const coords = await geocode(address, city, state, zip, apiKey);
       if (coords) {
-        results[id] = coords;
-        console.log(`OK  ${id}: ${address}, ${city} → ${coords.lat}, ${coords.lng}`);
+        results[id] = { lat: coords.lat, lng: coords.lng };
+        console.log(`OK  ${id}: ${address}, ${city} → ${coords.lat}, ${coords.lng} [${coords.type}]`);
         ok++;
       } else {
         results[id] = null;
@@ -119,8 +130,8 @@ async function main() {
     // Save after each result so we can resume
     fs.writeFileSync(outPath, JSON.stringify(results, null, 2));
 
-    // Nominatim rate limit: 1 req/sec
-    await sleep(1100);
+    // Google Geocoding API allows much higher throughput
+    await sleep(50);
   }
 
   console.log(`\nDone. OK=${ok} MISS=${miss} SKIP=${skip}`);
