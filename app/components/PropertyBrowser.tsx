@@ -137,6 +137,18 @@ export default function PropertyBrowser({ properties, columns }: Props) {
     [selectedId, displayProperties]
   );
 
+  const ratingCounts = useMemo(() => {
+    const counts = { yes: 0, maybe: 0, no: 0, unrated: 0 };
+    for (const p of displayProperties) {
+      const r = p.Rating as Rating | null | undefined;
+      if (r === "yes") counts.yes++;
+      else if (r === "maybe") counts.maybe++;
+      else if (r === "no") counts.no++;
+      else counts.unrated++;
+    }
+    return counts;
+  }, [displayProperties]);
+
   const mappableProperties = useMemo(
     () => filteredProperties.filter((p) => p.coords != null),
     [filteredProperties]
@@ -160,12 +172,12 @@ export default function PropertyBrowser({ properties, columns }: Props) {
             </button>
             {(
               [
-                { key: "yes",     label: "✓ Yes",   active: "bg-green-100 text-green-700 border-green-300" },
-                { key: "maybe",   label: "? Maybe", active: "bg-amber-100 text-amber-700 border-amber-300" },
-                { key: "no",      label: "✕ No",    active: "bg-red-100 text-red-700 border-red-300" },
-                { key: "unrated", label: "Unrated", active: "bg-zinc-200 text-zinc-700 border-zinc-400" },
-              ] as const
-            ).map(({ key, label, active }) => {
+                { key: "yes",     label: "✓ Yes",   count: ratingCounts.yes,     active: "bg-green-100 text-green-700 border-green-300" },
+                { key: "maybe",   label: "? Maybe", count: ratingCounts.maybe,   active: "bg-amber-100 text-amber-700 border-amber-300" },
+                { key: "no",      label: "✕ No",    count: ratingCounts.no,      active: "bg-red-100 text-red-700 border-red-300" },
+                { key: "unrated", label: "Unrated", count: ratingCounts.unrated, active: "bg-zinc-200 text-zinc-700 border-zinc-400" },
+              ] as { key: "yes" | "maybe" | "no" | "unrated"; label: string; count: number; active: string }[]
+            ).map(({ key, label, count, active }) => {
               const isOn = ratingFilter.has(key);
               return (
                 <button
@@ -181,7 +193,7 @@ export default function PropertyBrowser({ properties, columns }: Props) {
                     isOn ? active : "bg-white text-zinc-500 border-zinc-300 hover:border-zinc-400"
                   }`}
                 >
-                  {label}
+                  {label} ({count})
                 </button>
               );
             })}
