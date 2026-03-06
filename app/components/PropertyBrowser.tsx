@@ -67,12 +67,20 @@ export default function PropertyBrowser({ properties, columns }: Props) {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [ratings, setRatings] = useState<Record<string, Rating>>({});
   const [ratingFilter, setRatingFilter] = useState<Set<Rating | "unrated">>(new Set());
+  const [addressed, setAddressed] = useState<Record<string, boolean>>({});
 
   // Load persisted ratings on mount
   useEffect(() => {
     fetch("/api/ratings")
       .then((r) => r.json())
       .then(setRatings)
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/addressed")
+      .then((r) => r.json())
+      .then(setAddressed)
       .catch(() => {});
   }, []);
 
@@ -86,6 +94,17 @@ export default function PropertyBrowser({ properties, columns }: Props) {
 
   function handleSelect(id: string) {
     setSelectedId((prev) => (prev === id ? null : id));
+  }
+
+  async function handleAddressed(id: string) {
+    const current = addressed[id] ?? false;
+    const res = await fetch("/api/addressed", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, addressed: !current }),
+    });
+    const updated = await res.json();
+    setAddressed(updated);
   }
 
   async function handleRate(id: string, rating: Rating | null) {
@@ -233,6 +252,8 @@ export default function PropertyBrowser({ properties, columns }: Props) {
           onClose={() => setSelectedId(null)}
           onNavigate={handleSelect}
           onRate={handleRate}
+          addressed={addressed}
+          onAddressed={handleAddressed}
         />
       )}
     </>

@@ -161,9 +161,11 @@ interface Props {
   onClose: () => void;
   onNavigate: (id: string) => void;
   onRate: (id: string, rating: Rating | null) => void;
+  addressed: Record<string, boolean>;
+  onAddressed: (id: string) => void;
 }
 
-export default function PropertyDetailModal({ property: p, properties, onClose, onNavigate, onRate }: Props) {
+export default function PropertyDetailModal({ property: p, properties, onClose, onNavigate, onRate, addressed, onAddressed }: Props) {
   const currentIndex = properties.findIndex((prop) => String(prop.Id) === String(p.Id));
   const prevProp = currentIndex > 0 ? properties[currentIndex - 1] : null;
   const nextProp = currentIndex < properties.length - 1 ? properties[currentIndex + 1] : null;
@@ -295,6 +297,16 @@ export default function PropertyDetailModal({ property: p, properties, onClose, 
                   </button>
                 );
               })}
+              <button
+                onClick={() => onAddressed(String(p.Id))}
+                className={`px-2.5 py-0.5 rounded text-xs font-medium border cursor-pointer transition-colors ${
+                  addressed[String(p.Id)]
+                    ? "bg-blue-100 text-blue-700 border-blue-400"
+                    : "bg-zinc-50 text-zinc-500 border-zinc-200 hover:bg-zinc-100"
+                }`}
+              >
+                ✉ Addressed
+              </button>
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
