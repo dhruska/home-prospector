@@ -67,6 +67,7 @@ export default function PropertyBrowser({ properties, columns }: Props) {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [ratings, setRatings] = useState<Record<string, Rating>>({});
   const [ratingFilter, setRatingFilter] = useState<Set<Rating | "unrated">>(new Set());
+  const [yesUnaddressedOnly, setYesUnaddressedOnly] = useState(false);
   const [addressed, setAddressed] = useState<Record<string, boolean>>({});
 
   // Load persisted ratings on mount
@@ -132,7 +133,18 @@ export default function PropertyBrowser({ properties, columns }: Props) {
     });
   }, [properties, userLocation, ratings]);
 
+  const yesUnaddressedCount = useMemo(() =>
+    displayProperties.filter((p) =>
+      (p.Rating as Rating | null) === "yes" && !addressed[String(p.Id)]
+    ).length,
+  [displayProperties, addressed]);
+
   const filteredProperties = useMemo(() => {
+    if (yesUnaddressedOnly) {
+      return displayProperties.filter((p) =>
+        (p.Rating as Rating | null) === "yes" && !addressed[String(p.Id)]
+      );
+    }
     if (ratingFilter.size === 0) return displayProperties;
     return displayProperties.filter((p) => {
       const r = p.Rating as Rating | null | undefined;
@@ -140,7 +152,7 @@ export default function PropertyBrowser({ properties, columns }: Props) {
       if (r && ratingFilter.has(r)) return true;
       return false;
     });
-  }, [displayProperties, ratingFilter]);
+  }, [displayProperties, ratingFilter, yesUnaddressedOnly, addressed]);
 
   const displayColumns = useMemo(() => {
     const cols = ["Rating", ...columns];
@@ -180,9 +192,9 @@ export default function PropertyBrowser({ properties, columns }: Props) {
           <div className="flex items-center gap-1.5 px-3 py-2 border-b border-zinc-200 bg-zinc-50 text-xs shrink-0">
             <span className="text-zinc-400 font-medium mr-1">Show:</span>
             <button
-              onClick={() => setRatingFilter(new Set())}
+              onClick={() => { setRatingFilter(new Set()); setYesUnaddressedOnly(false); }}
               className={`px-2 py-0.5 rounded border font-medium transition-colors ${
-                ratingFilter.size === 0
+                ratingFilter.size === 0 && !yesUnaddressedOnly
                   ? "bg-zinc-800 text-white border-zinc-800"
                   : "bg-white text-zinc-500 border-zinc-300 hover:border-zinc-400"
               }`}
@@ -202,6 +214,7 @@ export default function PropertyBrowser({ properties, columns }: Props) {
                 <button
                   key={key}
                   onClick={() => {
+                    setYesUnaddressedOnly(false);
                     setRatingFilter((prev) => {
                       const next = new Set(prev);
                       isOn ? next.delete(key) : next.add(key);
@@ -216,7 +229,17 @@ export default function PropertyBrowser({ properties, columns }: Props) {
                 </button>
               );
             })}
-            {ratingFilter.size > 0 && (
+            <button
+              onClick={() => { setYesUnaddressedOnly((v) => !v); setRatingFilter(new Set()); }}
+              className={`px-2 py-0.5 rounded border font-medium transition-colors ${
+                yesUnaddressedOnly
+                  ? "bg-green-100 text-green-700 border-green-300"
+                  : "bg-white text-zinc-500 border-zinc-300 hover:border-zinc-400"
+              }`}
+            >
+              ✓ Yes, unaddressed ({yesUnaddressedCount})
+            </button>
+            {(ratingFilter.size > 0 || yesUnaddressedOnly) && (
               <span className="ml-auto text-zinc-400">
                 {filteredProperties.length} of {displayProperties.length}
               </span>
