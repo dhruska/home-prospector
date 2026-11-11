@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
-import path from "path";
+import { dataPath } from "../../lib/dataPath";
 
-const addressedPath = path.join(process.cwd(), "data", "addressed.json");
+const addressedPath = dataPath("addressed.json");
 
 function readAddressed(): Record<string, boolean> {
   try {

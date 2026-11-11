@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
-import path from "path";
+import { dataPath } from "../../lib/dataPath";
 
 export type Rating = "yes" | "maybe" | "no";
 
-const ratingsPath = path.join(process.cwd(), "data", "ratings.json");
+const ratingsPath = dataPath("ratings.json");
 
 function readRatings(): Record<string, Rating> {
   try {

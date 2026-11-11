@@ -1,7 +1,7 @@
-// Geocodes addresses from propwire_export.csv using Google Geocoding API (ROOFTOP precision).
-// Saves results to data/geocoded.json as { "[Id]": { lat, lng } }.
+// Geocodes addresses from <DATA_DIR>/propwire_export.csv using Google Geocoding API (ROOFTOP precision).
+// Saves results to <DATA_DIR>/geocoded.json as { "[Id]": { lat, lng } }.
 // Safe to interrupt and resume — already-geocoded entries are skipped.
-// Run: node scripts/geocode.mjs
+// Run: node scripts/geocode.mjs   (honors DATA_DIR, default "data")
 
 import fs from "fs";
 import path from "path";
@@ -81,8 +81,9 @@ async function main() {
   }
   if (!apiKey) { console.error("Missing NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"); process.exit(1); }
 
-  const csvPath = path.join(rootDir, "data", "propwire_export.csv");
-  const outPath = path.join(rootDir, "data", "geocoded.json");
+  const dataDir = path.resolve(rootDir, process.env.DATA_DIR || "data");
+  const csvPath = path.join(dataDir, "propwire_export.csv");
+  const outPath = path.join(dataDir, "geocoded.json");
 
   const csvText = fs.readFileSync(csvPath, "utf-8");
   const rows = parseCSV(csvText);

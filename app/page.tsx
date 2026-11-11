@@ -1,11 +1,11 @@
 import fs from "fs";
-import path from "path";
+import { dataPath } from "./lib/dataPath";
 import Papa from "papaparse";
 import PropertyBrowser from "./components/PropertyBrowser";
 import type { Property, GeocodedCoords } from "./types/property";
 
 export default function Home() {
-  const csvPath = path.join(process.cwd(), "data", "propwire_export.csv");
+  const csvPath = dataPath("propwire_export.csv");
   const csvText = fs.readFileSync(csvPath, "utf-8");
 
   const { data, meta } = Papa.parse<Record<string, unknown>>(csvText, {
@@ -20,7 +20,7 @@ export default function Home() {
   );
 
   // Load geocoded coordinates if available
-  const geocodedPath = path.join(process.cwd(), "data", "geocoded.json");
+  const geocodedPath = dataPath("geocoded.json");
   let geocoded: Record<string, GeocodedCoords | null> = {};
   if (fs.existsSync(geocodedPath)) {
     geocoded = JSON.parse(fs.readFileSync(geocodedPath, "utf-8"));

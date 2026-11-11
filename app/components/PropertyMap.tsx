@@ -62,20 +62,36 @@ interface Props {
   onSelect: (id: string) => void;
 }
 
-// Center on Oak Park, IL
-const CENTER: [number, number] = [41.8875, -87.7896];
+// Fit the initial view to all mapped properties (runs once on mount).
+function FitToProperties({ properties }: { properties: Property[] }) {
+  const map = useMap();
+
+  useEffect(() => {
+    const points = properties
+      .filter((p) => p.coords)
+      .map((p) => [p.coords!.lat, p.coords!.lng] as [number, number]);
+    if (points.length > 0) map.fitBounds(points, { padding: [24, 24], maxZoom: 15 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map]);
+
+  return null;
+}
+
+// Fallback view before fitting (continental US) — no location baked in.
+const CENTER: [number, number] = [39.8, -98.6];
 
 export default function PropertyMap({ properties, selectedId, onSelect }: Props) {
   return (
     <MapContainer
       center={CENTER}
-      zoom={13}
+      zoom={4}
       style={{ height: "100%", width: "100%" }}
     >
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       />
+      <FitToProperties properties={properties} />
       <MapPanner selectedId={selectedId} properties={properties} />
       {properties.map((prop) => {
         if (!prop.coords) return null;
