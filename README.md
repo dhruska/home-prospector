@@ -1,8 +1,8 @@
-# Home Prospector
+# Pocket Listing
 
 Find your next house before it hits the market: shortlist homes you love and write to their owners.
 
-![Home Prospector showing sample Frank Lloyd Wright homes in a table and on a map](docs/screenshot.png)
+![Pocket Listing showing sample Frank Lloyd Wright homes in a table and on a map](docs/screenshot.png)
 
 ## How it's meant to be used
 
