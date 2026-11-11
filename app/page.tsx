@@ -35,7 +35,7 @@ export default function Home() {
     <div className="h-screen flex flex-col">
       <div className="px-6 py-3 border-b border-zinc-200 bg-white shrink-0">
         <h1 className="text-xl font-semibold text-zinc-900 inline mr-3">
-          Home Prospector
+          Pocket Listing
         </h1>
         <span className="text-sm text-zinc-500">
           {data.length} properties · {columns.length} columns · Click a row or
