@@ -305,7 +305,7 @@ export default function PropertyDetailModal({ property: p, properties, onClose, 
                     : "bg-zinc-50 text-zinc-500 border-zinc-200 hover:bg-zinc-100"
                 }`}
               >
-                ✉ Addressed
+                ✉ Letter sent
               </button>
             </div>
           </div>

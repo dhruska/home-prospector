@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# House Prospector
 
-## Getting Started
+A small Next.js app for finding a house that isn't for sale yet, by writing letters to the owners of homes you like.
 
-First, run the development server:
+![House Prospector showing sample Frank Lloyd Wright homes in a table and on a map](docs/screenshot.png)
+
+## How it's meant to be used
+
+1. **Export candidates.** Use [Propwire](https://propwire.com) to pull every single-family home in the neighborhoods and price range you're interested in, whether or not it's listed, and export the list as CSV.
+2. **Triage.** Go through them in a sortable table next to a map. Each home has a detail view with Zillow, Redfin and Street View links, plus the distance from where you are now. Rate each one **yes / maybe / no**.
+3. **Write letters.** For the homes you said yes to, send the owner a short letter saying you love their house and asking whether they'd ever think about selling. Click **✉ Letter sent** to track your progress, and use the **Yes, no letter yet** filter to see who's left.
+
+This is how the author found the house they ended up buying.
+
+## Features
+
+- Sortable, filterable table of the full Propwire export
+- Map with pins colored by rating (OpenStreetMap / Leaflet)
+- Detail view with Zillow, Redfin, Google Maps and Street View links
+- Distance from your current location (browser geolocation)
+- Ratings and letter-sent flags saved to local JSON files
+
+## Getting started
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Sample data
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The repo ships with sample data in `data/` so the app works out of the box. The addresses are real, publicly documented **Frank Lloyd Wright–designed homes in the Chicago area**, and Year Built is Wright's design year. **Everything else is randomly generated and fictional**: owners, prices, specs, taxes, sale and mortgage history, and ratings. It does not describe the real properties or the people who live in them.
 
-## Learn More
+To regenerate it:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+node scripts/generate-sample-data.mjs
+DATA_DIR=data node scripts/geocode.mjs   # needs a Google Maps API key; see below
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Using your own data
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Export a property list from Propwire as CSV.
+2. Create a gitignored folder, for example `data-private/`, and save the export there as `propwire_export.csv`.
+3. Point the app at it in `.env.local`:
 
-## Deploy on Vercel
+   ```
+   DATA_DIR=data-private
+   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your-key   # optional: geocoding + Street View
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+4. Geocode the addresses so they show up on the map:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+   ```bash
+   DATA_DIR=data-private node scripts/geocode.mjs
+   ```
+
+Ratings (`ratings.json`) and letter-sent flags (`addressed.json`) are written to the same `DATA_DIR`.

@@ -237,7 +237,7 @@ export default function PropertyBrowser({ properties, columns }: Props) {
                   : "bg-white text-zinc-500 border-zinc-300 hover:border-zinc-400"
               }`}
             >
-              ✓ Yes, unaddressed ({yesUnaddressedCount})
+              ✓ Yes, no letter yet ({yesUnaddressedCount})
             </button>
             {(ratingFilter.size > 0 || yesUnaddressedOnly) && (
               <span className="ml-auto text-zinc-400">
