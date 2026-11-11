@@ -1,8 +1,8 @@
-# House Prospector
+# Home Prospector
 
 Find your next house before it hits the market: shortlist homes you love and write to their owners.
 
-![House Prospector showing sample Frank Lloyd Wright homes in a table and on a map](docs/screenshot.png)
+![Home Prospector showing sample Frank Lloyd Wright homes in a table and on a map](docs/screenshot.png)
 
 ## How it's meant to be used
 
