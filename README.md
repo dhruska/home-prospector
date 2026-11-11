@@ -10,7 +10,7 @@ A small Next.js app for finding a house that isn't for sale yet, by writing lett
 2. **Triage.** Go through them in a sortable table next to a map. Each home has a detail view with Zillow, Redfin and Street View links, plus the distance from where you are now. Rate each one **yes / maybe / no**.
 3. **Write letters.** For the homes you said yes to, send the owner a short letter saying you love their house and asking whether they'd ever think about selling. Click **✉ Letter sent** to track your progress, and use the **Yes, no letter yet** filter to see who's left.
 
-This is how the author found the house they ended up buying.
+This helped me find my house.
 
 ## Features
 
